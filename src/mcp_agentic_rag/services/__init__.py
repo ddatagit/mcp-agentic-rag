@@ -2,7 +2,12 @@
 
 # Conditional imports to handle missing dependencies gracefully
 try:
-    from .vector_retrieval import VectorRetrievalService, Retriever, QdrantVDB, EmbedData
+    from .vector_retrieval import (
+        EmbedData,
+        QdrantVDB,
+        Retriever,
+        VectorRetrievalService,
+    )
     _VECTOR_AVAILABLE = True
 except ImportError:
     _VECTOR_AVAILABLE = False
@@ -12,7 +17,7 @@ except ImportError:
     EmbedData = None
 
 try:
-    from .web_search import WebSearchService, FallbackSearch
+    from .web_search import FallbackSearch, WebSearchService
     _WEB_AVAILABLE = True
 except ImportError:
     _WEB_AVAILABLE = False
@@ -28,12 +33,12 @@ except ImportError:
 
 try:
     from .exceptions import (
+        APIError,
         MCPToolError,
-        ValidationError,
+        NoResultsError,
         ServiceError,
         TimeoutError,
-        APIError,
-        NoResultsError,
+        ValidationError,
     )
     _EXCEPTIONS_AVAILABLE = True
 except ImportError:

@@ -4,10 +4,10 @@ Tests Scenario 7 from quickstart.md: Timeout Handling and performance requiremen
 This test must fail initially and pass after implementation.
 """
 
-import pytest
-from typing import Dict, Any
-import time
 import concurrent.futures
+import time
+
+import pytest
 
 
 class TestPerformance:
@@ -62,9 +62,10 @@ class TestPerformance:
 
     def test_timeout_enforcement(self):
         """Test timeout is enforced at exactly 5 seconds."""
-        from server import mcp
-        from unittest.mock import patch
         import time
+        from unittest.mock import patch
+
+        from server import mcp
 
         # Mock a slow operation that would exceed 5 seconds
         def slow_search(*args, **kwargs):
@@ -73,15 +74,15 @@ class TestPerformance:
 
         with patch('fallback_search.FallbackSearch.search', side_effect=slow_search):
             start_time = time.time()
-            
+
             with pytest.raises(Exception) as exc_info:
                 mcp.call_tool("intelligent_query_tool", {"query": "test"})
-            
+
             end_time = time.time()
-            
+
             # Should timeout at 5 seconds
             assert end_time - start_time <= 5.5  # Allow small buffer
-            
+
             error = exc_info.value
             assert error.error_type == "TIMEOUT_ERROR"
             assert error.timeout_seconds == 5
@@ -111,7 +112,7 @@ class TestPerformance:
             results = [future.result() for future in futures]
 
         # All queries should meet performance requirements
-        for response_time, result in results:
+        for response_time, _result in results:
             assert response_time < 5.0, f"Query took {response_time}s, should be < 5s"
 
     def test_confidence_threshold_accuracy(self):

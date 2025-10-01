@@ -1,15 +1,13 @@
 """Vector retrieval service for MCP Agentic RAG system."""
 
+import time
+from typing import Any
+
+from qdrant_client import QdrantClient, models
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
-from qdrant_client import models
-from qdrant_client import QdrantClient
-import time
-from typing import List, Dict, Any, Optional
-from pydantic import ValidationError
 
 from ..models.vector_match import VectorMatch
-
 
 # FAQ text data
 faq_text = """Question 1: What is the first step before building a machine learning model?
@@ -75,7 +73,7 @@ Answer 20: It builds trust, helps debug, and ensures compliance—especially imp
 new_faq_text = [i.replace("\n", " ") for i in faq_text.split("\n\n")]
 
 
-def batch_iterate(lst: List, batch_size: int):
+def batch_iterate(lst: list, batch_size: int):
     """Iterate over list in batches."""
     for i in range(0, len(lst), batch_size):
         yield lst[i : i + batch_size]
@@ -102,11 +100,11 @@ class EmbedData:
         )
         return embed_model
 
-    def generate_embedding(self, context: List[str]):
+    def generate_embedding(self, context: list[str]):
         """Generate embeddings for a batch of contexts."""
         return self.embed_model.encode(context, batch_size=self.batch_size, convert_to_tensor=False)
 
-    def embed(self, contexts: List[str]):
+    def embed(self, contexts: list[str]):
         """Embed all contexts in batches."""
         self.contexts = contexts
 
@@ -116,6 +114,12 @@ class EmbedData:
 
             batch_embeddings = self.generate_embedding(batch_context)
             self.embeddings.extend(batch_embeddings)
+
+    def get_query_embedding(self, query: str) -> list[float]:
+        """Generate embedding for a single query string."""
+        # Use the same encoding method but for a single query
+        embedding = self.embed_model.encode([query], convert_to_tensor=False, batch_size=1)
+        return embedding[0].tolist() if hasattr(embedding[0], 'tolist') else embedding[0]
 
 
 class QdrantVDB:
@@ -154,7 +158,7 @@ class QdrantVDB:
         """Ingest data into the vector database."""
         for batch_context, batch_embeddings in tqdm(
             zip(batch_iterate(embeddata.contexts, self.batch_size),
-                batch_iterate(embeddata.embeddings, self.batch_size)),
+                batch_iterate(embeddata.embeddings, self.batch_size), strict=False),
             total=len(embeddata.contexts)//self.batch_size,
             desc="Ingesting in batches"
         ):
@@ -183,7 +187,7 @@ class Retriever:
 
         Maintained for backward compatibility.
         """
-        query_embedding = self.embeddata.embed_model.get_query_embedding(query)
+        query_embedding = self.embeddata.get_query_embedding(query)
 
         # select the top 3 results
         result = self.vector_db.client.search(
@@ -210,7 +214,7 @@ class Retriever:
         final_output = "\n\n---\n\n".join(combined_prompt)
         return final_output
 
-    def search_with_confidence(self, query: str, limit: int = 5, min_confidence: float = 0.0) -> Dict[str, Any]:
+    def search_with_confidence(self, query: str, limit: int = 5, min_confidence: float = 0.0) -> dict[str, Any]:
         """
         Enhanced search method that returns results with confidence scores and metadata.
 
@@ -225,7 +229,7 @@ class Retriever:
         start_time = time.time()
 
         try:
-            query_embedding = self.embeddata.embed_model.get_query_embedding(query)
+            query_embedding = self.embeddata.get_query_embedding(query)
 
             # Perform vector search
             result = self.vector_db.client.search(
@@ -242,6 +246,16 @@ class Retriever:
                 timeout=1000,
             )
 
+            # Check if result is valid
+            if result is None:
+                return {
+                    "results": [],
+                    "total_found": 0,
+                    "query_id": str(time.time()),
+                    "search_time_seconds": time.time() - start_time,
+                    "average_confidence": 0.0
+                }
+
             # Process results with confidence scores
             processed_results = []
             total_found = len(result)
@@ -253,8 +267,14 @@ class Retriever:
 
                 # Filter by minimum confidence
                 if confidence >= min_confidence:
+                    # Check if payload exists and has the required context
+                    if entry.payload is not None and "context" in entry.payload:
+                        content = entry.payload["context"]
+                    else:
+                        content = "No content available"
+
                     processed_results.append({
-                        "content": entry.payload["context"],
+                        "content": content,
                         "confidence": confidence,
                         "source_document": f"faq_document_{i+1}",
                         "metadata": {
@@ -280,9 +300,9 @@ class Retriever:
 
         except Exception as e:
             search_time = time.time() - start_time
-            raise Exception(f"Vector search failed: {str(e)}")
+            raise Exception(f"Vector search failed: {str(e)}") from e
 
-    def validate_vector_input(self, input_data: Dict[str, Any]):
+    def validate_vector_input(self, input_data: dict[str, Any]):
         """Validate input for vector search tool."""
         if not input_data.get("query"):
             raise ValueError("Query is required")
@@ -320,7 +340,7 @@ class VectorRetrievalService:
         """Simple search interface for backward compatibility."""
         return self.retriever.search(query)
 
-    def advanced_search(self, query: str, confidence_threshold: float = 0.7) -> List[VectorMatch]:
+    def advanced_search(self, query: str, confidence_threshold: float = 0.7) -> list[VectorMatch]:
         """
         Advanced search that returns structured VectorMatch objects.
 
@@ -355,7 +375,7 @@ class VectorRetrievalService:
 
         return vector_matches
 
-    def get_search_stats(self, query: str) -> Dict[str, Any]:
+    def get_search_stats(self, query: str) -> dict[str, Any]:
         """Get search statistics without returning full results."""
         results = self.retriever.search_with_confidence(query=query, limit=20, min_confidence=0.0)
 

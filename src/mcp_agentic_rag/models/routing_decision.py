@@ -1,6 +1,6 @@
 """RoutingDecision model for MCP Agentic RAG system."""
 
-from typing import List
+
 from pydantic import Field, field_validator
 
 from .base import BaseModel
@@ -14,7 +14,7 @@ class RoutingDecision(BaseModel):
     strategy: SearchStrategy = Field(..., description="Chosen routing strategy")
     reasoning: str = Field(..., min_length=1, description="Human-readable explanation of the routing decision")
     domain_detected: bool = Field(..., description="Whether domain-specific terminology was detected")
-    ml_keywords_found: List[str] = Field(default_factory=list, description="Specific ML terms that influenced routing")
+    ml_keywords_found: list[str] = Field(default_factory=list, description="Specific ML terms that influenced routing")
     estimated_local_coverage: float = Field(..., ge=0.0, le=1.0, description="Estimated likelihood of finding results in vector DB")
 
     @field_validator('reasoning')
@@ -27,7 +27,7 @@ class RoutingDecision(BaseModel):
 
     @field_validator('ml_keywords_found')
     @classmethod
-    def validate_ml_keywords(cls, v: List[str]) -> List[str]:
+    def validate_ml_keywords(cls, v: list[str]) -> list[str]:
         """Validate and clean ML keywords."""
         return [keyword.strip().lower() for keyword in v if keyword.strip()]
 

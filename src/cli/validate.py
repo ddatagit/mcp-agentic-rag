@@ -4,14 +4,13 @@
 Checks implementation against requirements and validates the new package structure.
 """
 
-import sys
-import os
 import json
-from typing import Dict, List, Any
+import sys
 from pathlib import Path
+from typing import Any
 
 
-def validate_structure() -> Dict[str, Any]:
+def validate_structure() -> dict[str, Any]:
     """Validate the new package structure is properly organized."""
     project_root = Path(__file__).parent.parent.parent
 
@@ -68,9 +67,8 @@ def validate_structure() -> Dict[str, Any]:
     }
 
 
-def validate_imports() -> Dict[str, Any]:
+def validate_imports() -> dict[str, Any]:
     """Validate that imports work correctly with new structure."""
-    import_tests = []
     successful_imports = []
     failed_imports = []
 
@@ -110,7 +108,7 @@ def validate_imports() -> Dict[str, Any]:
     }
 
 
-def validate_mcp_server() -> Dict[str, Any]:
+def validate_mcp_server() -> dict[str, Any]:
     """Validate MCP server functionality."""
     try:
         # Add src to path
@@ -118,7 +116,7 @@ def validate_mcp_server() -> Dict[str, Any]:
         if str(src_path) not in sys.path:
             sys.path.insert(0, str(src_path))
 
-        from mcp_agentic_rag.server.mcp_server import mcp, MCPServer
+        from mcp_agentic_rag.server.mcp_server import MCPServer
 
         # Test server initialization
         server = MCPServer()
@@ -149,14 +147,14 @@ def validate_mcp_server() -> Dict[str, Any]:
         }
 
 
-def reorganize_project_structure() -> Dict[str, Any]:
+def reorganize_project_structure() -> dict[str, Any]:
     """
     Perform project structure reorganization.
 
     This function provides the migration logic to move from flat structure
     to organized package structure.
     """
-    project_root = Path(__file__).parent.parent.parent
+    # Path(__file__).parent.parent.parent  # Project root (unused for now)
 
     # Check if reorganization is already complete
     structure_check = validate_structure()
@@ -194,7 +192,7 @@ def reorganize_project_structure() -> Dict[str, Any]:
     }
 
 
-def run_full_validation() -> Dict[str, Any]:
+def run_full_validation() -> dict[str, Any]:
     """Run complete validation suite."""
     print("Running MCP Agentic RAG Validation Suite")
     print("=" * 50)
@@ -221,7 +219,7 @@ def run_full_validation() -> Dict[str, Any]:
     if import_result["status"] == "success":
         print(f"[OK] Import validation passed ({len(import_result['successful_imports'])} modules)")
     else:
-        print(f"[FAIL] Import validation failed")
+        print("[FAIL] Import validation failed")
         for error in import_result["failed_imports"][:3]:
             print(f"   - {error}")
 

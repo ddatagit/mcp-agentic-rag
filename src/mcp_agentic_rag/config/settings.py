@@ -1,9 +1,10 @@
 """Configuration management for MCP Agentic RAG system."""
 
 import os
-from typing import List, Optional, Any
-from pydantic import BaseModel, Field, field_validator
+from typing import Any
+
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, field_validator
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,11 +21,11 @@ class Settings(BaseModel):
     max_response_time: float = Field(default=5.0, description="Maximum total response time in seconds")
 
     # Google Custom Search API configuration
-    google_api_key: Optional[str] = Field(default=None, description="Google Custom Search API key")
-    google_cx: Optional[str] = Field(default=None, description="Google Custom Search engine ID")
+    google_api_key: str | None = Field(default=None, description="Google Custom Search API key")
+    google_cx: str | None = Field(default=None, description="Google Custom Search engine ID")
 
     # ML terminology for domain detection
-    ml_keywords: List[str] = Field(
+    ml_keywords: list[str] = Field(
         default=[
             "overfitting", "gradient descent", "neural networks", "machine learning",
             "deep learning", "classification", "regression", "clustering", "supervised",
@@ -122,7 +123,7 @@ class Settings(BaseModel):
 class ConfigManager:
     """Configuration manager for centralized config access."""
 
-    _instance: Optional[Settings] = None
+    _instance: Settings | None = None
 
     @classmethod
     def get_config(cls) -> Settings:
@@ -144,7 +145,7 @@ class ConfigManager:
 
 
 # Global configuration instance
-_config: Optional[Settings] = None
+_config: Settings | None = None
 
 
 def load_config() -> Settings:

@@ -1,9 +1,10 @@
 """Integration tests for ML domain query routing."""
 
-import pytest
-from unittest.mock import Mock, patch
 import sys
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
@@ -17,7 +18,9 @@ class TestMLQueryFlow:
     def test_ml_query_routes_to_vector_db(self, mock_router):
         """Test that ML queries are routed to vector database."""
         try:
-            from mcp_agentic_rag.server.mcp_server import intelligent_query_router_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                intelligent_query_router_tool,
+            )
 
             mock_router_instance = Mock()
             mock_router_instance.route_query.return_value = {

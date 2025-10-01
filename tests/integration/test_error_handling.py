@@ -4,9 +4,9 @@ Tests Scenario 6 from quickstart.md: No Results Error Handling.
 This test must fail initially and pass after implementation.
 """
 
-import pytest
-from typing import Dict, Any
 from unittest.mock import patch
+
+import pytest
 
 
 class TestErrorHandling:
@@ -32,8 +32,8 @@ class TestErrorHandling:
 
     def test_timeout_error_handling(self):
         """Test TIMEOUT_ERROR scenario."""
+
         from server import mcp
-        import asyncio
 
         with patch('time.time') as mock_time:
             # Mock time to simulate timeout
@@ -63,8 +63,8 @@ class TestErrorHandling:
 
     def test_web_search_error_handling(self):
         """Test WEB_SEARCH_ERROR scenario."""
-        from server import mcp
         import httpx
+        from server import mcp
 
         with patch('httpx.get') as mock_get:
             mock_get.side_effect = httpx.ConnectError("Network error")

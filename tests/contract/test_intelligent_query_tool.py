@@ -4,9 +4,10 @@ Tests the MCP tool contract specification from contracts/intelligent_query_tool.
 These tests must fail initially and pass after implementation.
 """
 
-import pytest
 import json
-from typing import Dict, Any
+from typing import Any
+
+import pytest
 from pydantic import ValidationError
 
 
@@ -14,13 +15,13 @@ class TestIntelligentQueryToolContract:
     """Test contract compliance for intelligent_query_tool."""
 
     @pytest.fixture
-    def contract_spec(self) -> Dict[str, Any]:
+    def contract_spec(self) -> dict[str, Any]:
         """Load contract specification from JSON file."""
-        with open("specs/001-rag-with-intelligent/contracts/intelligent_query_tool.json", "r") as f:
+        with open("specs/001-rag-with-intelligent/contracts/intelligent_query_tool.json") as f:
             return json.load(f)
 
     @pytest.fixture
-    def valid_input(self) -> Dict[str, Any]:
+    def valid_input(self) -> dict[str, Any]:
         """Valid input according to contract."""
         return {
             "query": "What is overfitting in machine learning models?",
@@ -28,7 +29,7 @@ class TestIntelligentQueryToolContract:
         }
 
     @pytest.fixture
-    def invalid_inputs(self) -> list[Dict[str, Any]]:
+    def invalid_inputs(self) -> list[dict[str, Any]]:
         """Invalid inputs for validation testing."""
         return [
             {},  # Missing required query
@@ -48,7 +49,7 @@ class TestIntelligentQueryToolContract:
         tool_names = [tool.name for tool in mcp._tools.values()]
         assert "intelligent_query_tool" in tool_names, "intelligent_query_tool should be registered"
 
-    def test_input_schema_validation(self, contract_spec: Dict[str, Any], valid_input: Dict[str, Any]):
+    def test_input_schema_validation(self, contract_spec: dict[str, Any], valid_input: dict[str, Any]):
         """Test input validation matches contract schema."""
         # This will fail until validation is implemented
         from intelligent_router import IntelligentRouter
@@ -59,7 +60,7 @@ class TestIntelligentQueryToolContract:
         result = router.validate_input(valid_input)
         assert result is not None
 
-    def test_input_schema_rejects_invalid(self, contract_spec: Dict[str, Any], invalid_inputs: list):
+    def test_input_schema_rejects_invalid(self, contract_spec: dict[str, Any], invalid_inputs: list):
         """Test input validation rejects invalid inputs."""
         from intelligent_router import IntelligentRouter
 
@@ -69,7 +70,7 @@ class TestIntelligentQueryToolContract:
             with pytest.raises((ValidationError, ValueError)):
                 router.validate_input(invalid_input)
 
-    def test_output_schema_compliance(self, valid_input: Dict[str, Any]):
+    def test_output_schema_compliance(self, valid_input: dict[str, Any]):
         """Test output matches contract schema."""
         from server import mcp
 
@@ -146,7 +147,7 @@ class TestIntelligentQueryToolContract:
                 assert routing["threshold_met"] is False
                 assert routing["fallback_triggered"] is True
 
-    def test_response_time_constraint(self, valid_input: Dict[str, Any]):
+    def test_response_time_constraint(self, valid_input: dict[str, Any]):
         """Test 5-second maximum response time."""
         from server import mcp
 

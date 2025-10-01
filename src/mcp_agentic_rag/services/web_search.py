@@ -1,13 +1,69 @@
 """Web search service for MCP Agentic RAG system."""
 
-import os
-import httpx
 import time
-from typing import List, Dict, Any, Optional
-from pydantic import ValidationError
+from typing import Any
+
+import httpx
 
 from ..config.settings import get_setting
 from ..models.web_result import WebResult
+
+
+# Custom exception classes
+class APIKeyError(Exception):
+    """Exception raised when API key is missing or invalid."""
+    def __init__(self, message: str, error_type: str = "API_KEY_MISSING"):
+        super().__init__(message)
+        self.error_type = error_type
+        self.config_variable = "GOOGLE_API_KEY"
+        self.http_status_code = 500
+
+
+class QuotaError(Exception):
+    """Exception raised when API quota is exceeded."""
+    def __init__(self, message: str, error_type: str = "API_QUOTA_EXCEEDED"):
+        super().__init__(message)
+        self.error_type = error_type
+        self.daily_limit = 100
+        self.reset_time = "24 hours"
+        self.http_status_code = 429
+
+
+class NetworkError(Exception):
+    """Exception raised for network-related errors."""
+    def __init__(self, message: str, error_type: str = "NETWORK_ERROR", status_code: int | None = None):
+        super().__init__(message)
+        self.error_type = error_type
+        self.error_details = message
+        self.status_code = status_code
+        self.http_status_code = status_code or 502
+
+
+class NoResultsError(Exception):
+    """Exception raised when no search results are found."""
+    def __init__(self, message: str, query: str = "", error_type: str = "NO_RESULTS"):
+        super().__init__(message)
+        self.error_type = error_type
+        self.query = query
+        self.http_status_code = 404
+
+
+class WebSearchTimeoutError(Exception):
+    """Exception raised when search times out."""
+    def __init__(self, message: str, error_type: str = "SEARCH_TIMEOUT", timeout_seconds: int = 30):
+        super().__init__(message)
+        self.error_type = error_type
+        self.timeout_seconds = timeout_seconds
+        self.http_status_code = 408
+
+
+class WebSearchError(Exception):
+    """Generic web search error."""
+    def __init__(self, message: str, error_type: str = "WEB_SEARCH_ERROR"):
+        super().__init__(message)
+        self.error_type = error_type
+        self.error_details = message
+        self.http_status_code = 502
 
 
 class FallbackSearch:
@@ -32,7 +88,7 @@ class FallbackSearch:
 
         self._validated = True
 
-    def validate_web_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_web_input(self, input_data: dict[str, Any]) -> None:
         """Validate web search input parameters."""
         if not input_data.get("query"):
             raise ValueError("Query is required")
@@ -51,9 +107,9 @@ class FallbackSearch:
             if safe_search not in ["off", "medium", "high"]:
                 raise ValueError("safe_search must be one of: off, medium, high")
 
-    def search(self, query: str, num_results: int = 5, safe_search: str = "medium") -> List[Dict[str, Any]]:
+    def search(self, query: str, num_results: int = 5, safe_search: str = "medium") -> list[dict[str, Any]]:
         """Perform Google Custom Search and return normalized results."""
-        start_time = time.time()
+        time.time()
 
         try:
             # Validate configuration and inputs
@@ -79,42 +135,20 @@ class FallbackSearch:
 
             # Handle HTTP errors
             if response.status_code == 401:
-                error = type('APIKeyError', (), {
-                    'error_type': 'API_KEY_MISSING',
-                    'config_variable': 'GOOGLE_API_KEY',
-                    'http_status_code': 500
-                })()
-                raise error
+                raise APIKeyError("API key missing or invalid")
 
             elif response.status_code == 429:
-                error = type('QuotaError', (), {
-                    'error_type': 'API_QUOTA_EXCEEDED',
-                    'daily_limit': 100,  # Default Google Custom Search limit
-                    'reset_time': "24 hours",
-                    'http_status_code': 429
-                })()
-                raise error
+                raise QuotaError("API quota exceeded")
 
             elif response.status_code != 200:
-                error = type('NetworkError', (), {
-                    'error_type': 'NETWORK_ERROR',
-                    'error_details': f"HTTP {response.status_code}: {response.text}",
-                    'status_code': response.status_code,
-                    'http_status_code': 502
-                })()
-                raise error
+                raise NetworkError(f"HTTP {response.status_code}: {response.text}", status_code=response.status_code)
 
             # Parse response
             data = response.json()
             items = data.get("items", [])
 
             if not items:
-                error = type('NoResultsError', (), {
-                    'error_type': 'NO_RESULTS',
-                    'query': query,
-                    'http_status_code': 404
-                })()
-                raise error
+                raise NoResultsError("No search results found", query=query)
 
             # Normalize results
             normalized_results = []
@@ -130,22 +164,11 @@ class FallbackSearch:
 
             return normalized_results
 
-        except httpx.TimeoutException:
-            error = type('TimeoutError', (), {
-                'error_type': 'SEARCH_TIMEOUT',
-                'timeout_seconds': 30,
-                'http_status_code': 408
-            })()
-            raise error
+        except httpx.TimeoutException as e:
+            raise WebSearchTimeoutError("Search request timed out") from e
 
         except httpx.ConnectError as e:
-            error = type('NetworkError', (), {
-                'error_type': 'NETWORK_ERROR',
-                'error_details': str(e),
-                'status_code': None,
-                'http_status_code': 502
-            })()
-            raise error
+            raise NetworkError(f"Connection error: {str(e)}") from e
 
         except Exception as e:
             # Re-raise known errors
@@ -153,19 +176,14 @@ class FallbackSearch:
                 raise e
 
             # Handle unexpected errors
-            error = type('WebSearchError', (), {
-                'error_type': 'WEB_SEARCH_ERROR',
-                'error_details': str(e),
-                'http_status_code': 502
-            })()
-            raise error
+            raise WebSearchError(f"Unexpected web search error: {str(e)}") from e
 
     def search_with_metadata(
         self,
         query: str,
         num_results: int = 5,
         safe_search: str = "medium"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Perform search and return results with metadata."""
         start_time = time.time()
 
@@ -185,7 +203,7 @@ class FallbackSearch:
             search_time = time.time() - start_time
 
             # Return error with timing information
-            error_response = {
+            return {
                 "query_id": self._generate_query_id(),
                 "results": [],
                 "total_found": 0,
@@ -193,9 +211,6 @@ class FallbackSearch:
                 "search_engine": "google_custom_search",
                 "error": str(e)
             }
-
-            # Re-raise the error but with additional context
-            raise e
 
     def _create_display_url(self, url: str) -> str:
         """Create user-friendly display URL."""
@@ -230,11 +245,11 @@ class FallbackSearch:
         import uuid
         return str(uuid.uuid4())
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Check health status of Google Custom Search API."""
         try:
             # Perform minimal test search
-            test_result = self.search("test", num_results=1)
+            self.search("test", num_results=1)
             return {
                 "status": "healthy",
                 "api_accessible": True,
@@ -260,7 +275,7 @@ class WebSearchService:
     def __init__(self):
         self.fallback_search = FallbackSearch()
 
-    def search(self, query: str, num_results: int = 5) -> Dict[str, Any]:
+    def search(self, query: str, num_results: int = 5) -> dict[str, Any]:
         """
         Perform web search and return structured results.
 
@@ -284,9 +299,9 @@ class WebSearchService:
 
         except Exception as e:
             # Re-raise with context
-            raise Exception(f"Web search failed: {str(e)}")
+            raise Exception(f"Web search failed: {str(e)}") from e
 
-    def search_with_models(self, query: str, num_results: int = 5) -> List[WebResult]:
+    def search_with_models(self, query: str, num_results: int = 5) -> list[WebResult]:
         """
         Perform web search and return WebResult model objects.
 
@@ -318,12 +333,12 @@ class WebSearchService:
             return web_results
 
         except Exception as e:
-            raise Exception(f"Web search with models failed: {str(e)}")
+            raise Exception(f"Web search with models failed: {str(e)}") from e
 
-    def validate_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_input(self, input_data: dict[str, Any]) -> None:
         """Validate web search input."""
         return self.fallback_search.validate_web_input(input_data)
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get health status of web search service."""
         return self.fallback_search.get_health_status()

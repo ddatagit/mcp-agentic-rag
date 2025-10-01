@@ -4,23 +4,23 @@ Tests Scenario 3 from quickstart.md: Hybrid Results (Mixed Confidence Ranking).
 This test must fail initially and pass after implementation.
 """
 
+from typing import Any
+
 import pytest
-from typing import Dict, Any
-import time
 
 
 class TestHybridResults:
     """Test hybrid results with mixed confidence ranking."""
 
     @pytest.fixture
-    def technical_query_input(self) -> Dict[str, Any]:
+    def technical_query_input(self) -> dict[str, Any]:
         """Technical query that should produce hybrid results."""
         return {
             "query": "neural networks vs transformer architectures comparison 2025",
             "domain_hint": "technical"
         }
 
-    def test_hybrid_scenario_complete_flow(self, technical_query_input: Dict[str, Any]):
+    def test_hybrid_scenario_complete_flow(self, technical_query_input: dict[str, Any]):
         """Test complete flow for hybrid results scenario."""
         from server import mcp
 
@@ -50,7 +50,7 @@ class TestHybridResults:
         confidences = [r["confidence"] for r in combined_results]
         assert confidences == sorted(confidences, reverse=True)
 
-    def test_source_attribution_clarity(self, technical_query_input: Dict[str, Any]):
+    def test_source_attribution_clarity(self, technical_query_input: dict[str, Any]):
         """Test that source attribution is clear for each result."""
         from server import mcp
 

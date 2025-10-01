@@ -1,8 +1,9 @@
 """VectorMatch model for MCP Agentic RAG system."""
 
-from typing import Dict, Any
-from pydantic import Field, field_validator
 import uuid as uuid_module
+from typing import Any
+
+from pydantic import Field, field_validator
 
 from .base import BaseModel
 from .types import ScoreRange
@@ -20,7 +21,7 @@ class VectorMatch(BaseModel):
     content: str = Field(..., min_length=1, description="The matching text content")
     score: ScoreRange = Field(..., ge=0.0, le=1.0, description="Similarity score from vector search")
     source_document: str = Field(..., description="Original document reference")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional document metadata")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional document metadata")
 
     @field_validator('document_id')
     @classmethod
@@ -30,8 +31,8 @@ class VectorMatch(BaseModel):
             # Validate it's a proper UUID
             uuid_module.UUID(v)
             return v
-        except ValueError:
-            raise ValueError("document_id must be a valid UUID format")
+        except ValueError as e:
+            raise ValueError("document_id must be a valid UUID format") from e
 
     @field_validator('content')
     @classmethod
@@ -49,7 +50,7 @@ class VectorMatch(BaseModel):
             raise ValueError("source_document cannot be empty")
         return v.strip()
 
-    def get_relevance_summary(self) -> Dict[str, Any]:
+    def get_relevance_summary(self) -> dict[str, Any]:
         """
         Get a summary of this match's relevance information.
 

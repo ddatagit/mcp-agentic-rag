@@ -1,10 +1,11 @@
 """Test configuration and shared fixtures for MCP Agentic RAG tests."""
 
-import pytest
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 # Add src directory to Python path for imports
 src_path = Path(__file__).parent.parent / "src"

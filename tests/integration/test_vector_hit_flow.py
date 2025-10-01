@@ -4,23 +4,24 @@ Tests Scenario 1 from quickstart.md: Vector Database Hit (ML Query with High Con
 This test must fail initially and pass after implementation.
 """
 
-import pytest
-from typing import Dict, Any
 import time
+from typing import Any
+
+import pytest
 
 
 class TestVectorHitFlow:
     """Test vector database hit scenario with high confidence."""
 
     @pytest.fixture
-    def ml_query_input(self) -> Dict[str, Any]:
+    def ml_query_input(self) -> dict[str, Any]:
         """ML query that should hit vector DB with high confidence."""
         return {
             "query": "What is overfitting in machine learning models?",
             "domain_hint": "machine_learning"
         }
 
-    def test_vector_hit_scenario_complete_flow(self, ml_query_input: Dict[str, Any]):
+    def test_vector_hit_scenario_complete_flow(self, ml_query_input: dict[str, Any]):
         """Test complete flow for vector DB hit scenario."""
         # This will fail until implementation exists
         from server import mcp
@@ -63,10 +64,11 @@ class TestVectorHitFlow:
             assert "content" in item
             assert item["confidence"] >= 0.7, "All results should meet confidence threshold"
 
-    def test_vector_hit_no_web_search_called(self, ml_query_input: Dict[str, Any]):
+    def test_vector_hit_no_web_search_called(self, ml_query_input: dict[str, Any]):
         """Test that web search is not called when vector DB provides sufficient results."""
-        from server import mcp
         from unittest.mock import patch
+
+        from server import mcp
 
         # Mock web search to ensure it's not called
         with patch('fallback_search.FallbackSearch.search') as mock_web_search:
@@ -100,7 +102,7 @@ class TestVectorHitFlow:
             assert any(keyword in detected_keywords for keyword in expected_keywords), \
                 f"Should detect keywords {expected_keywords} in query '{query_data['query']}'"
 
-    def test_vector_confidence_threshold_validation(self, ml_query_input: Dict[str, Any]):
+    def test_vector_confidence_threshold_validation(self, ml_query_input: dict[str, Any]):
         """Test that confidence threshold is properly applied."""
         from server import mcp
 
@@ -117,7 +119,7 @@ class TestVectorHitFlow:
                 assert routing["threshold_met"] is False
                 assert routing["fallback_triggered"] is True
 
-    def test_response_metadata_completeness(self, ml_query_input: Dict[str, Any]):
+    def test_response_metadata_completeness(self, ml_query_input: dict[str, Any]):
         """Test that all required metadata is present in response."""
         from server import mcp
 
@@ -144,7 +146,7 @@ class TestVectorHitFlow:
         if routing["vector_confidence_avg"] is not None:
             assert 0.0 <= routing["vector_confidence_avg"] <= 1.0
 
-    def test_vector_results_quality(self, ml_query_input: Dict[str, Any]):
+    def test_vector_results_quality(self, ml_query_input: dict[str, Any]):
         """Test that vector results are high quality and relevant."""
         from server import mcp
 
@@ -168,7 +170,7 @@ class TestVectorHitFlow:
             # Confidence should be high for ML queries
             assert item["confidence"] >= 0.7, f"Confidence {item['confidence']} should be >= 0.7"
 
-    def test_consistent_behavior_across_runs(self, ml_query_input: Dict[str, Any]):
+    def test_consistent_behavior_across_runs(self, ml_query_input: dict[str, Any]):
         """Test that the same query produces consistent results."""
         from server import mcp
 
@@ -192,10 +194,11 @@ class TestVectorHitFlow:
         assert (max_confidence - min_confidence) < 0.1, "Confidence should be consistent across runs"
 
     @pytest.mark.slow
-    def test_performance_under_load(self, ml_query_input: Dict[str, Any]):
+    def test_performance_under_load(self, ml_query_input: dict[str, Any]):
         """Test performance when handling multiple vector queries."""
-        from server import mcp
         import concurrent.futures
+
+        from server import mcp
 
         def run_query():
             start_time = time.time()

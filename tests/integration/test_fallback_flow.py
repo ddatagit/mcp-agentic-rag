@@ -4,23 +4,24 @@ Tests Scenario 2 from quickstart.md: Vector Database Miss (General Query Below T
 This test must fail initially and pass after implementation.
 """
 
-import pytest
-from typing import Dict, Any
 import time
+from typing import Any
+
+import pytest
 
 
 class TestFallbackFlow:
     """Test vector database miss with web search fallback."""
 
     @pytest.fixture
-    def general_query_input(self) -> Dict[str, Any]:
+    def general_query_input(self) -> dict[str, Any]:
         """General query that should trigger fallback due to low vector confidence."""
         return {
             "query": "What are the latest quantum computing breakthroughs in 2025?",
             "domain_hint": "general"
         }
 
-    def test_fallback_scenario_complete_flow(self, general_query_input: Dict[str, Any]):
+    def test_fallback_scenario_complete_flow(self, general_query_input: dict[str, Any]):
         """Test complete flow for fallback scenario."""
         # This will fail until implementation exists
         from server import mcp
@@ -71,10 +72,11 @@ class TestFallbackFlow:
             assert "content" in item
             assert 0 <= item["confidence"] <= 1.0
 
-    def test_vector_search_attempted_first(self, general_query_input: Dict[str, Any]):
+    def test_vector_search_attempted_first(self, general_query_input: dict[str, Any]):
         """Test that vector search is attempted first before fallback."""
+        from unittest.mock import patch
+
         from server import mcp
-        from unittest.mock import patch, call
 
         # Mock both vector and web search to track call order
         with patch('rag_code.Retriever.search') as mock_vector_search, \
@@ -84,14 +86,14 @@ class TestFallbackFlow:
             mock_vector_search.return_value = "Low confidence vector results"
             mock_web_search.return_value = [{"title": "Test", "snippet": "Test", "url": "http://test.com"}]
 
-            result = mcp.call_tool("intelligent_query_tool", general_query_input)
+            mcp.call_tool("intelligent_query_tool", general_query_input)
 
             # Vector search should be called first
             mock_vector_search.assert_called_once()
             # Web search should be called due to low confidence
             mock_web_search.assert_called_once()
 
-    def test_confidence_ranking_across_sources(self, general_query_input: Dict[str, Any]):
+    def test_confidence_ranking_across_sources(self, general_query_input: dict[str, Any]):
         """Test that results are ranked by confidence regardless of source."""
         from server import mcp
 
@@ -129,11 +131,12 @@ class TestFallbackFlow:
                 assert "web_search" in routing["sources_used"], \
                     "Should include web search in sources"
 
-    def test_web_search_error_handling(self, general_query_input: Dict[str, Any]):
+    def test_web_search_error_handling(self, general_query_input: dict[str, Any]):
         """Test behavior when web search fails."""
-        from server import mcp
         from unittest.mock import patch
+
         import httpx
+        from server import mcp
 
         # Mock web search to fail
         with patch('httpx.get') as mock_get:
@@ -149,7 +152,7 @@ class TestFallbackFlow:
                 assert hasattr(e, 'error_type')
                 assert e.error_type in ["WEB_SEARCH_ERROR", "NO_RESULTS_FOUND"]
 
-    def test_timeout_behavior_fallback_scenario(self, general_query_input: Dict[str, Any]):
+    def test_timeout_behavior_fallback_scenario(self, general_query_input: dict[str, Any]):
         """Test timeout handling in fallback scenario."""
         from server import mcp
 
@@ -184,7 +187,7 @@ class TestFallbackFlow:
             assert len(ml_keywords) == 0, \
                 f"General query '{query}' should not detect ML keywords, got {ml_keywords}"
 
-    def test_web_result_quality_and_format(self, general_query_input: Dict[str, Any]):
+    def test_web_result_quality_and_format(self, general_query_input: dict[str, Any]):
         """Test quality and format of web search results."""
         from server import mcp
 
@@ -210,7 +213,7 @@ class TestFallbackFlow:
             confidence = web_result["confidence"]
             assert 0.0 <= confidence <= 1.0, f"Confidence {confidence} out of range"
 
-    def test_fallback_consistency_across_runs(self, general_query_input: Dict[str, Any]):
+    def test_fallback_consistency_across_runs(self, general_query_input: dict[str, Any]):
         """Test that fallback behavior is consistent across multiple runs."""
         from server import mcp
 
@@ -226,10 +229,11 @@ class TestFallbackFlow:
             assert "web_search" in routing["sources_used"]
 
     @pytest.mark.slow
-    def test_fallback_performance_requirements(self, general_query_input: Dict[str, Any]):
+    def test_fallback_performance_requirements(self, general_query_input: dict[str, Any]):
         """Test performance requirements for fallback scenario."""
-        from server import mcp
         import time
+
+        from server import mcp
 
         # Run multiple fallback scenarios to test performance
         start_time = time.time()

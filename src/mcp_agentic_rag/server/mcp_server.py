@@ -1,18 +1,22 @@
 """MCP Server for Agentic RAG with intelligent routing."""
 
-from mcp.server.fastmcp import FastMCP
-import json
-import uuid
 import time
-from typing import Dict, Any
+
+from mcp.server.fastmcp import FastMCP
+
+from ..config.settings import load_config
 
 # Import from new package structure
 from ..models.query import Query
-from ..config.settings import load_config
 
 # Conditional imports for services
 try:
-    from ..services.vector_retrieval import VectorRetrievalService, Retriever, QdrantVDB, EmbedData
+    from ..services.vector_retrieval import (
+        EmbedData,
+        QdrantVDB,
+        Retriever,
+        VectorRetrievalService,
+    )
     _VECTOR_AVAILABLE = True
 except ImportError:
     _VECTOR_AVAILABLE = False
@@ -22,7 +26,7 @@ except ImportError:
     EmbedData = None
 
 try:
-    from ..services.web_search import WebSearchService, FallbackSearch
+    from ..services.web_search import FallbackSearch, WebSearchService
     _WEB_AVAILABLE = True
 except ImportError:
     _WEB_AVAILABLE = False
@@ -34,13 +38,23 @@ mcp = FastMCP(name="mcp-agentic-rag", host="127.0.0.1", port=8080)
 
 # Initialize services conditionally
 config = load_config()
-vector_service = VectorRetrievalService(config.vector_collection_name) if _VECTOR_AVAILABLE else None
-web_service = WebSearchService() if _WEB_AVAILABLE else None
+vector_service = None
+web_service = None
+fallback_search = None
+retriever = None
 
-# For backward compatibility, also initialize the original components
+if _VECTOR_AVAILABLE and VectorRetrievalService is not None:
+    vector_service = VectorRetrievalService(config.vector_collection_name)
+    if Retriever is not None and QdrantVDB is not None and EmbedData is not None:
+        retriever = Retriever(QdrantVDB("ml_faq_collection"), EmbedData())
+
+if _WEB_AVAILABLE and WebSearchService is not None:
+    web_service = WebSearchService()
+    if FallbackSearch is not None:
+        fallback_search = FallbackSearch()
+
+# For backward compatibility
 intelligent_router = None  # Will be initialized when intelligent_router service is migrated
-fallback_search = FallbackSearch() if _WEB_AVAILABLE else None
-retriever = Retriever(QdrantVDB("ml_faq_collection"), EmbedData()) if _VECTOR_AVAILABLE else None
 
 
 @mcp.tool()
@@ -82,13 +96,13 @@ def machine_learning_faq_retrieval_tool(query: str) -> str:
         return response
 
     except ConnectionError as e:
-        raise ConnectionError(f"Database unreachable: {str(e)}")
+        raise ConnectionError(f"Database unreachable: {str(e)}") from e
 
     except TimeoutError as e:
-        raise TimeoutError(f"Search timed out: {str(e)}")
+        raise TimeoutError(f"Search timed out: {str(e)}") from e
 
     except Exception as e:
-        raise Exception(f"Vector search failed: {str(e)}")
+        raise Exception(f"Vector search failed: {str(e)}") from e
 
 
 @mcp.tool()
@@ -139,24 +153,25 @@ def bright_data_web_search_tool(query: str) -> dict:
         }
 
     except Exception as e:
-        # Check if it's a known error type with error_type attribute
-        if hasattr(e, 'error_type'):
-            if e.error_type == "API_KEY_MISSING":
-                raise Exception("API key missing or invalid")
-            elif e.error_type == "API_QUOTA_EXCEEDED":
-                raise Exception("Rate limit exceeded")
-            elif e.error_type == "SEARCH_TIMEOUT":
-                raise TimeoutError("Search request timed out")
-            elif e.error_type == "NO_RESULTS":
-                # Return empty results instead of raising for no results
-                return {
-                    "results": [],
-                    "total_results": 0,
-                    "response_time": 0.0
-                }
+        # Handle specific exception types based on the error message or type
+        error_msg = str(e).lower()
+
+        if "api key" in error_msg or "authentication" in error_msg:
+            raise Exception("API key missing or invalid") from e
+        elif "quota" in error_msg or "rate limit" in error_msg:
+            raise Exception("Rate limit exceeded") from e
+        elif "timeout" in error_msg:
+            raise TimeoutError("Search request timed out") from e
+        elif "no results" in error_msg:
+            # Return empty results instead of raising for no results
+            return {
+                "results": [],
+                "total_results": 0,
+                "response_time": 0.0
+            }
 
         # For other errors, raise with context
-        raise Exception(f"Web search failed: {str(e)}")
+        raise Exception(f"Web search failed: {str(e)}") from e
 
 
 @mcp.tool()
@@ -297,15 +312,15 @@ def intelligent_query_router_tool(query: str, confidence_threshold: float = 0.7)
 
         # Check timeout
         if response_time > config.max_response_time:
-            raise TimeoutError(f"Total response time {response_time:.2f}s exceeds limit of {config.max_response_time}s")
+            raise TimeoutError(f"Total response time {response_time:.2f}s exceeds limit of {config.max_response_time}s") from e
 
-        raise Exception(f"Query routing failed: {str(e)}")
+        raise Exception(f"Query routing failed: {str(e)}") from e
 
 
 def main():
     """Main entry point for the MCP server."""
     print("Starting MCP Agentic RAG Server...")
-    print(f"Server running on http://127.0.0.1:8080")
+    print("Server running on http://127.0.0.1:8080")
     print("Available tools:")
     print("- machine_learning_faq_retrieval_tool")
     print("- bright_data_web_search_tool")

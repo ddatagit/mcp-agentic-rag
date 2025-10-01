@@ -5,8 +5,14 @@ __author__ = "MCP Agentic RAG Team"
 __description__ = "MCP server for intelligent RAG with vector database and web search fallback"
 
 # Import models (these don't require external dependencies)
-from .models import Query, VectorMatch, WebResult, SearchResponse, RoutingDecision
 from .config import Settings
+from .models import (
+    Query,
+    RoutingDecision,
+    SearchResponse,
+    VectorMatch,
+    WebResult,
+)
 
 # Conditional imports for services and server (require external dependencies)
 try:

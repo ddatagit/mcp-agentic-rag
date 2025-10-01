@@ -1,7 +1,7 @@
 """Query model for MCP Agentic RAG system."""
 
 from datetime import datetime
-from typing import List
+
 from pydantic import Field, field_validator
 
 from .base import BaseModel
@@ -18,7 +18,7 @@ class Query(BaseModel):
     id: str = Field(default_factory=lambda: Query.generate_id())
     text: str = Field(..., min_length=1, max_length=1000)
     timestamp: datetime = Field(default_factory=lambda: Query.current_timestamp())
-    domain_hints: List[str] = Field(default_factory=list)
+    domain_hints: list[str] = Field(default_factory=list)
     confidence_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
     max_response_time: float = Field(default=5.0, gt=0.0)
 
@@ -32,11 +32,11 @@ class Query(BaseModel):
 
     @field_validator('domain_hints')
     @classmethod
-    def validate_domain_hints(cls, v: List[str]) -> List[str]:
+    def validate_domain_hints(cls, v: list[str]) -> list[str]:
         """Validate and clean domain hints."""
         return [hint.strip().lower() for hint in v if hint.strip()]
 
-    def extract_ml_keywords(self) -> List[str]:
+    def extract_ml_keywords(self) -> list[str]:
         """
         Extract machine learning keywords from the query text.
 

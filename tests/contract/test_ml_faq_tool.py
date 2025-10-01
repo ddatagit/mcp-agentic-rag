@@ -1,9 +1,10 @@
 """Contract tests for machine_learning_faq_retrieval_tool."""
 
-import pytest
-from unittest.mock import Mock, patch
 import sys
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent.parent / "src"
@@ -18,15 +19,17 @@ class TestMLFAQToolContract:
         """Test that the tool function exists with correct signature."""
         # This will fail until we implement the tool
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
-
             # Check function signature
             import inspect
+
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
             sig = inspect.signature(machine_learning_faq_retrieval_tool)
             params = list(sig.parameters.keys())
 
             assert "query" in params, "Tool must have 'query' parameter"
-            assert sig.return_annotation == str, "Tool must return str"
+            assert sig.return_annotation is str, "Tool must return str"
 
         except ImportError:
             pytest.fail("machine_learning_faq_retrieval_tool not found - implement in mcp_server.py")
@@ -34,7 +37,9 @@ class TestMLFAQToolContract:
     def test_input_validation_string_required(self):
         """Test that tool validates input is a string."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             # Test non-string input raises ValueError
             with pytest.raises(ValueError, match="query must be a string"):
@@ -49,7 +54,9 @@ class TestMLFAQToolContract:
     def test_input_validation_non_empty(self):
         """Test that tool validates input is non-empty."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             # Test empty string raises ValueError
             with pytest.raises(ValueError, match="query cannot be empty"):
@@ -64,7 +71,9 @@ class TestMLFAQToolContract:
     def test_input_validation_max_length(self):
         """Test that tool validates input max length."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             # Test query too long raises ValueError
             long_query = "x" * 1001
@@ -78,7 +87,9 @@ class TestMLFAQToolContract:
     def test_successful_query_returns_string(self, mock_retriever_class):
         """Test that valid query returns string response."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             # Mock the retriever to return test data
             mock_retriever = Mock()
@@ -98,7 +109,9 @@ class TestMLFAQToolContract:
     def test_database_connection_error_handling(self, mock_retriever_class):
         """Test that database connection errors are handled properly."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             # Mock retriever to raise connection error
             mock_retriever = Mock()
@@ -115,7 +128,9 @@ class TestMLFAQToolContract:
     def test_timeout_error_handling(self, mock_retriever_class):
         """Test that timeout errors are handled properly."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             # Mock retriever to raise timeout error
             mock_retriever = Mock()
@@ -147,7 +162,9 @@ class TestMLFAQToolContract:
     def test_response_format_compliance(self):
         """Test that response format matches contract specification."""
         try:
-            from mcp_agentic_rag.server.mcp_server import machine_learning_faq_retrieval_tool
+            from mcp_agentic_rag.server.mcp_server import (
+                machine_learning_faq_retrieval_tool,
+            )
 
             with patch('mcp_agentic_rag.services.vector_retrieval.Retriever') as mock_retriever_class:
                 mock_retriever = Mock()

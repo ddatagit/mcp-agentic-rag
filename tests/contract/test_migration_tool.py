@@ -1,8 +1,9 @@
 """Contract tests for project structure migration."""
 
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pytest
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent.parent / "src"
@@ -17,11 +18,11 @@ class TestMigrationToolContract:
     def test_migration_tool_exists(self):
         """Test that migration tool exists in CLI module."""
         try:
-            from cli.validate import reorganize_project_structure
-
             import inspect
+
+            from cli.validate import reorganize_project_structure
             sig = inspect.signature(reorganize_project_structure)
-            assert sig.return_annotation == dict, "Tool must return dict"
+            assert sig.return_annotation is dict, "Tool must return dict"
 
         except ImportError:
             pytest.fail("reorganize_project_structure not found - implement in cli/validate.py")

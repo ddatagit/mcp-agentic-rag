@@ -4,9 +4,10 @@ Tests the MCP tool contract specification from contracts/vector_search_tool.json
 These tests must fail initially and pass after implementation.
 """
 
-import pytest
 import json
-from typing import Dict, Any
+from typing import Any
+
+import pytest
 from pydantic import ValidationError
 
 
@@ -14,13 +15,13 @@ class TestVectorSearchToolContract:
     """Test contract compliance for vector_search_tool."""
 
     @pytest.fixture
-    def contract_spec(self) -> Dict[str, Any]:
+    def contract_spec(self) -> dict[str, Any]:
         """Load contract specification from JSON file."""
-        with open("specs/001-rag-with-intelligent/contracts/vector_search_tool.json", "r") as f:
+        with open("specs/001-rag-with-intelligent/contracts/vector_search_tool.json") as f:
             return json.load(f)
 
     @pytest.fixture
-    def valid_input(self) -> Dict[str, Any]:
+    def valid_input(self) -> dict[str, Any]:
         """Valid input according to contract."""
         return {
             "query": "feature engineering techniques for machine learning",
@@ -29,14 +30,14 @@ class TestVectorSearchToolContract:
         }
 
     @pytest.fixture
-    def minimal_input(self) -> Dict[str, Any]:
+    def minimal_input(self) -> dict[str, Any]:
         """Minimal valid input (only required fields)."""
         return {
             "query": "machine learning overfitting"
         }
 
     @pytest.fixture
-    def invalid_inputs(self) -> list[Dict[str, Any]]:
+    def invalid_inputs(self) -> list[dict[str, Any]]:
         """Invalid inputs for validation testing."""
         return [
             {},  # Missing required query
@@ -58,7 +59,7 @@ class TestVectorSearchToolContract:
         tool_names = [tool.name for tool in mcp._tools.values()]
         assert "vector_search_tool" in tool_names, "vector_search_tool should be registered"
 
-    def test_input_validation_valid(self, valid_input: Dict[str, Any], minimal_input: Dict[str, Any]):
+    def test_input_validation_valid(self, valid_input: dict[str, Any], minimal_input: dict[str, Any]):
         """Test input validation accepts valid inputs."""
         # This will fail until validation is implemented
         from rag_code import Retriever
@@ -79,7 +80,7 @@ class TestVectorSearchToolContract:
             with pytest.raises((ValidationError, ValueError)):
                 retriever.validate_vector_input(invalid_input)
 
-    def test_output_schema_compliance(self, valid_input: Dict[str, Any]):
+    def test_output_schema_compliance(self, valid_input: dict[str, Any]):
         """Test output matches contract schema."""
         from server import mcp
 
@@ -156,7 +157,7 @@ class TestVectorSearchToolContract:
         # Large limit should return more results (if available)
         assert len(large_result["results"]) >= len(small_result["results"])
 
-    def test_average_confidence_calculation(self, valid_input: Dict[str, Any]):
+    def test_average_confidence_calculation(self, valid_input: dict[str, Any]):
         """Test average_confidence field is calculated correctly."""
         from server import mcp
 
@@ -170,7 +171,7 @@ class TestVectorSearchToolContract:
             assert "average_confidence" in result
             assert abs(result["average_confidence"] - expected_avg) < 0.001
 
-    def test_vector_db_only_no_web_search(self, valid_input: Dict[str, Any]):
+    def test_vector_db_only_no_web_search(self, valid_input: dict[str, Any]):
         """Test that vector_search_tool only queries vector DB, never web."""
         from server import mcp
 
@@ -196,8 +197,9 @@ class TestVectorSearchToolContract:
     def test_error_handling_vector_db_unavailable(self):
         """Test VECTOR_DB_UNAVAILABLE error handling."""
         # This test requires mocking Qdrant to be unavailable
-        from server import mcp
         from unittest.mock import patch
+
+        from server import mcp
 
         with patch('qdrant_client.QdrantClient') as mock_client:
             mock_client.side_effect = ConnectionError("Cannot connect to Qdrant")
@@ -212,12 +214,12 @@ class TestVectorSearchToolContract:
 
     def test_search_timeout_handling(self):
         """Test SEARCH_TIMEOUT error handling."""
-        from server import mcp
         from unittest.mock import patch
-        import asyncio
+
+        from server import mcp
 
         with patch('rag_code.Retriever.search') as mock_search:
-            mock_search.side_effect = asyncio.TimeoutError("Search timed out")
+            mock_search.side_effect = TimeoutError("Search timed out")
 
             with pytest.raises(Exception) as exc_info:
                 mcp.call_tool("vector_search_tool", {"query": "test"})
@@ -227,10 +229,11 @@ class TestVectorSearchToolContract:
             assert hasattr(error, 'http_status_code')
             assert error.http_status_code == 408
 
-    def test_performance_requirement(self, valid_input: Dict[str, Any]):
+    def test_performance_requirement(self, valid_input: dict[str, Any]):
         """Test vector search completes within performance requirements."""
-        from server import mcp
         import time
+
+        from server import mcp
 
         start_time = time.time()
         result = mcp.call_tool("vector_search_tool", valid_input)

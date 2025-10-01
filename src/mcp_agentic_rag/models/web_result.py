@@ -1,9 +1,9 @@
 """WebResult model for MCP Agentic RAG system."""
 
 from datetime import datetime
-from typing import Optional
-from pydantic import Field, field_validator
 from urllib.parse import urlparse
+
+from pydantic import Field, field_validator
 
 from .base import BaseModel
 from .types import ScoreRange
